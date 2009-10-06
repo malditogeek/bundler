@@ -6,18 +6,18 @@ module Bundler
   class SourceNotCached < StandardError; end
 
   class Environment
-    attr_reader :filename, :dependencies
+    attr_reader :filename, :dependencies, :whitelist
     attr_accessor :rubygems, :system_gems
     attr_writer :gem_path, :bindir
 
-    def self.load(gemfile = nil)
+    def self.load(gemfile = nil, whitelist = nil)
       gemfile = gemfile ? Pathname.new(gemfile).expand_path : default_manifest_file
 
       unless gemfile.file?
         raise ManifestFileNotFound, "#{filename.inspect} does not exist"
       end
 
-      new(gemfile)
+      new(gemfile, whitelist)
     end
 
     def self.default_manifest_file
@@ -32,7 +32,7 @@ module Bundler
       raise DefaultManifestNotFound
     end
 
-    def initialize(filename) #, sources, dependencies, bindir, path, rubygems, system_gems)
+    def initialize(filename, whitelist) #, sources, dependencies, bindir, path, rubygems, system_gems)
       @filename         = filename
       @default_sources  = [GemSource.new(:uri => "http://gems.rubyforge.org"), SystemGemSource.new({})]
       @sources          = []
@@ -40,6 +40,7 @@ module Bundler
       @dependencies     = []
       @rubygems         = true
       @system_gems      = true
+      @whitelist        = whitelist.split(',') if whitelist
 
       # Evaluate the Gemfile
       builder = Dsl.new(self)
