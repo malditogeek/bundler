@@ -77,17 +77,20 @@ module Bundler
       options[:only] = _combine_only(options[:only] || options["only"])
       options[:except] = _combine_except(options[:except] || options["except"])
 
-      dep = Dependency.new(name, options.merge(:version => version))
+      if whitelisted?(options[:only], options[:except])
 
-      Gem::Command.build_args = [options[:build_args]].flatten if options[:build_args]
+        dep = Dependency.new(name, options.merge(:version => version))
 
-      if @git || options[:git]
-        _handle_git_option(name, version, options)
-      elsif @directory || options[:vendored_at]
-        _handle_vendored_option(name, version, options)
+        Gem::Command.build_args = [options[:build_args]].flatten if options[:build_args]
+
+        if @git || options[:git]
+          _handle_git_option(name, version, options)
+        elsif @directory || options[:vendored_at]
+          _handle_vendored_option(name, version, options)
+        end
+
+        @environment.dependencies << dep
       end
-
-      @environment.dependencies << dep
     end
 
   private
@@ -154,6 +157,14 @@ module Bundler
       except = [except].flatten.compact.uniq.map { |o| o.to_s }
       except |= @except if @except
       except
+    end
+
+    def whitelisted?(only, except)
+      return true unless @environment.whitelist # No whitelist specified
+      return true unless only or except # No restrictions
+      return true if (only and (@environment.whitelist & only).any?)
+      return true if (except and (@environment.whitelist & except).empty?)
+      return false
     end
   end
 end

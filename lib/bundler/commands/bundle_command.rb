@@ -26,6 +26,10 @@ class Gem::Commands::BundleCommand < Gem::Command
     add_option('--list', "List all gems that are part of the active bundle") do
       options[:list] = true
     end
+
+    add_option('-e', '--environments ENVIRONMENTS', "Specify an environment[s] whitelist to install (comma separated w/o spaces)") do |environments, options|
+      options[:whitelist] = environments
+    end
   end
 
   def usage
