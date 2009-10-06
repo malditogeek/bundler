@@ -79,6 +79,8 @@ module Bundler
 
       dep = Dependency.new(name, options.merge(:version => version))
 
+      Gem::Command.build_args = [options[:build_args]].flatten if options[:build_args]
+
       if @git || options[:git]
         _handle_git_option(name, version, options)
       elsif @directory || options[:vendored_at]

@@ -72,6 +72,11 @@ information, please refer to Bundler::ManifestBuilder.
     # in the repository.
     gem "rails", "3.0.pre", :git => "git://github.com/rails/rails.git"
 
+    # Specify one or more build arguments in case they're required
+    # for the native extensions. The same arguments you would pass
+    # after '--': gem install mysql -- --with-some-lib=/usr/local/somelib/
+    gem 'mysql', :build_args => ['--with-some-lib=/usr/local/somelib/']
+
     # Add http://gems.github.com as a source that the bundler will use
     # to find gems listed in the manifest. By default,
     # http://gems.rubyforge.org is already added to the list.
