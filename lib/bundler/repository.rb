@@ -2,13 +2,14 @@ module Bundler
   class InvalidRepository < StandardError ; end
 
   class Repository
-    attr_reader :path
+    attr_reader :path, :build_args
 
-    def initialize(path, bindir)
+    def initialize(path, bindir, build_args)
       FileUtils.mkdir_p(path)
 
       @path   = Pathname.new(path)
       @bindir = Pathname.new(bindir)
+      @build_args = build_args
 
       @cache = GemDirectorySource.new(:location => @path.join("cache"))
     end
@@ -89,6 +90,7 @@ module Bundler
         # Do nothing if the gem is already expanded
         next if @path.join("gems", spec.full_name).directory?
 
+        Gem::Command.build_args = build_args[spec.name] ? [build_args[spec.name]].flatten : []
         case spec.source
         when GemSource, GemDirectorySource, SystemGemSource
           expand_gemfile(spec, options)

@@ -7,7 +7,7 @@ module Bundler
 
   class Environment
     attr_reader :filename, :dependencies, :whitelist
-    attr_accessor :rubygems, :system_gems
+    attr_accessor :rubygems, :system_gems, :build_args
     attr_writer :gem_path, :bindir
 
     def self.load(gemfile = nil, whitelist = nil)
@@ -41,6 +41,7 @@ module Bundler
       @rubygems         = true
       @system_gems      = true
       @whitelist        = whitelist.split(',') if whitelist
+      @build_args       = {}
 
       # Evaluate the Gemfile
       builder = Dsl.new(self)
@@ -147,7 +148,7 @@ module Bundler
   private
 
     def repository
-      @repository ||= Repository.new(gem_path, bindir)
+      @repository ||= Repository.new(gem_path, bindir, build_args)
     end
 
     def gem_dependencies
