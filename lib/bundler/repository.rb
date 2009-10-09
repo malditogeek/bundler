@@ -2,13 +2,14 @@ module Bundler
   class InvalidRepository < StandardError ; end
 
   class Repository
-    attr_reader :path
+    attr_reader :path, :build_args
 
-    def initialize(path, bindir)
+    def initialize(path, bindir, build_args)
       FileUtils.mkdir_p(path)
 
       @path   = Pathname.new(path)
       @bindir = Pathname.new(bindir)
+      @build_args = build_args
 
       @cache = GemDirectorySource.new(:location => @path.join("cache"))
     end
@@ -35,7 +36,9 @@ module Bundler
         do_install(bundle, options)
         valid = bundle
       end
-      cleanup(valid)
+
+      generate_bins(valid, options)
+      cleanup(valid, options)
       configure(valid, options)
     end
 
@@ -87,12 +90,32 @@ module Bundler
         # Do nothing if the gem is already expanded
         next if @path.join("gems", spec.full_name).directory?
 
+        Gem::Command.build_args = build_args[spec.name] ? [build_args[spec.name]].flatten : []
         case spec.source
         when GemSource, GemDirectorySource, SystemGemSource
           expand_gemfile(spec, options)
         else
           expand_vendored_gem(spec, options)
         end
+      end
+    end
+
+    def generate_bins(bundle, options)
+      bundle.each do |spec|
+        # HAX -- Generate the bin
+        bin_dir = @bindir
+        path    = @path
+        installer = Gem::Installer.allocate
+        installer.instance_eval do
+          @spec     = spec
+          @bin_dir  = bin_dir
+          @gem_dir  = path.join("gems", "#{spec.full_name}")
+          @gem_home = path
+          @wrappers = true
+          @format_executable = false
+          @env_shebang = false
+        end
+        installer.generate_bin
       end
     end
 
@@ -115,19 +138,6 @@ module Bundler
       add_spec(spec)
       FileUtils.mkdir_p(@path.join("gems"))
       File.symlink(spec.location, @path.join("gems", spec.full_name))
-
-      # HAX -- Generate the bin
-      bin_dir = @bindir
-      path    = @path
-      installer = Gem::Installer.allocate
-      installer.instance_eval do
-        @spec     = spec
-        @bin_dir  = bin_dir
-        @gem_dir  = path.join("gems", "#{spec.full_name}")
-        @gem_home = path
-        @wrappers = true
-      end
-      installer.generate_bin
     end
 
     def add_spec(spec)
@@ -139,7 +149,7 @@ module Bundler
       end
     end
 
-    def cleanup(valid)
+    def cleanup(valid, options)
       to_delete = gems
       to_delete.delete_if do |spec|
         valid.any? { |other| spec.name == other.name && spec.version == other.version }

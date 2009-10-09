@@ -377,4 +377,26 @@ describe "Bundler::CLI" do
       end
     end
   end
+
+  describe "building gem with build arguments for compiled source" do
+
+    it "successfully installing gem" do
+      build_manifest <<-Gemfile
+        clear_sources
+        source "file://#{gem_repo2}"
+        gem "mysql", :build_args => '--with-mysql-config'
+      Gemfile
+
+      Dir.chdir(bundled_app) do
+        out = gem_command :bundle
+        out["Installing mysql (2.7)"].should == "Installing mysql (2.7)"
+        out["Building native extensions"].should == "Building native extensions"
+        out["Done"].should == "Done"
+      end
+
+      bundled_app("vendor", "gems").should have_installed_gems("mysql-2.7")
+    end
+
+  end
+
 end

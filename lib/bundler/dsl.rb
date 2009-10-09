@@ -48,9 +48,9 @@ module Bundler
       @except = old
     end
 
-    def directory(path)
+    def directory(path, options = {})
       raise DirectorySourceError, "cannot nest calls to directory or git" if @directory || @git
-      @directory = DirectorySource.new(:location => path)
+      @directory = DirectorySource.new(options.merge(:location => path))
       @directory_sources << @directory
       @environment.add_priority_source(@directory)
       yield if block_given?
@@ -81,14 +81,13 @@ module Bundler
 
         dep = Dependency.new(name, options.merge(:version => version))
 
-       [options[:build_args]].flatten.each {|arg| Gem::Commands::BundleCommand.build_args << arg } if options[:build_args]
-
         if @git || options[:git]
           _handle_git_option(name, version, options)
         elsif @directory || options[:vendored_at]
           _handle_vendored_option(name, version, options)
         end
 
+        @environment.build_args[name] = options[:build_args] if options[:build_args]
         @environment.dependencies << dep
       end
     end
@@ -130,9 +129,9 @@ module Bundler
       branch = options[:branch]
 
       if source = @git || @git_sources[git]
-        if source.ref != ref
+        if ref && source.ref != ref
           raise GitSourceError, "'#{git}' already specified with ref: #{source.ref}"
-        elsif source.branch != branch
+        elsif branch && source.branch != branch
           raise GitSourceError, "'#{git}' already specified with branch: #{source.branch}"
         end
 
